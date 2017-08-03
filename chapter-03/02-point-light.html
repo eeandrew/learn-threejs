@@ -35,6 +35,9 @@
         // create a scene, that will hold all our elements such as objects, cameras and lights.
         var scene = new THREE.Scene();
 
+        var axes = new THREE.AxisHelper(200);
+        scene.add(axes);
+
         // create a camera, which defines where we're looking at.
         var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -91,7 +94,7 @@
         camera.position.x = -25;
         camera.position.y = 30;
         camera.position.z = 25;
-        camera.lookAt(new THREE.Vector3(10, 0, 0));
+        camera.lookAt(new THREE.Vector3(3, 0, 0));
 
         // add subtle ambient lighting
         var ambiColor = "#0c0c0c";
@@ -115,7 +118,7 @@
         var sphereLight = new THREE.SphereGeometry(0.2);
         var sphereLightMaterial = new THREE.MeshBasicMaterial({color: 0xac6c25});
         var sphereLightMesh = new THREE.Mesh(sphereLight, sphereLightMaterial);
-        sphereLightMesh.castShadow = true;
+        sphereLightMesh.castShadow = false;
 
         sphereLightMesh.position = new THREE.Vector3(3, 0, 3);
         scene.add(sphereLightMesh);

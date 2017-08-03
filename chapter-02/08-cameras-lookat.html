@@ -62,6 +62,9 @@
         // add the plane to the scene
         scene.add(plane);
 
+        var axisHelper = new THREE.AxisHelper(100);
+        scene.add(axisHelper);
+
         var cubeGeometry = new THREE.BoxGeometry(4, 4, 4);
         var cubeMaterial = new THREE.MeshLambertMaterial({color: 0x00ee22});
         for (var j = 0; j < (planeGeometry.parameters.height / 5); j++) {

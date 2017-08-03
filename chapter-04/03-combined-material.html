@@ -88,7 +88,7 @@
                 var colorMaterial = new THREE.MeshBasicMaterial({
                     color: controls.color,
                     transparent: true,
-                    blending: THREE.MultiplyBlending
+                    blending: THREE.MultiplyBlending,
                 });
                 var cube = new THREE.SceneUtils.createMultiMaterialObject(cubeGeometry, [colorMaterial, cubeMaterial]);
                 cube.children[1].scale.set(0.99, 0.99, 0.99);

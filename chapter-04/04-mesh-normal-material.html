@@ -58,12 +58,12 @@
         groundMesh.position.y = -20;
         scene.add(groundMesh);
 
-        var sphereGeometry = new THREE.SphereGeometry(14, 20, 20);
+        var sphereGeometry = new THREE.SphereGeometry(14, 40, 40);
         var cubeGeometry = new THREE.BoxGeometry(15, 15, 15);
         var planeGeometry = new THREE.PlaneGeometry(14, 14, 4, 4);
 
 
-        var meshMaterial = new THREE.MeshNormalMaterial({color: 0x7777ff});
+        var meshMaterial = new THREE.MeshNormalMaterial({color: 0xff0000});
         var sphere = new THREE.Mesh(sphereGeometry, meshMaterial);
         var cube = new THREE.Mesh(cubeGeometry, meshMaterial);
         var plane = new THREE.Mesh(planeGeometry, meshMaterial);

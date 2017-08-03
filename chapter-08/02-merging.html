@@ -103,7 +103,7 @@
 
         var gui = new dat.GUI();
 
-        gui.add(controls, 'numberOfObjects', 0, 20000);
+        gui.add(controls, 'numberOfObjects', 0, 50000).onChange(controls.redraw);
         gui.add(controls, 'combined').onChange(controls.redraw);
         gui.add(controls, 'redraw');
 

@@ -72,7 +72,7 @@
 
         // add spotlight for the shadows
         var spotLight = new THREE.SpotLight(0xffffff);
-        spotLight.position.set(-40, 60, 020);
+        spotLight.position.set(-60, 60, 10);
         spotLight.castShadow = true;
         scene.add(spotLight);
 
@@ -175,9 +175,11 @@
             cube.visible = controls.visible;
 
 
-            cube.rotation.x = controls.rotationX;
-            cube.rotation.y = controls.rotationY;
-            cube.rotation.z = controls.rotationZ;
+            // cube.rotation.x = controls.rotationX;
+            // cube.rotation.y = controls.rotationY;
+            // cube.rotation.z = controls.rotationZ;
+            
+            cube.rotation.set(controls.rotationX,controls.rotationY,controls.rotationZ);
 
             cube.scale.set(controls.scaleX, controls.scaleY, controls.scaleZ);
 

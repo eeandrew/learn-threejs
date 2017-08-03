@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="../libs/three.js"></script>
+    <style>
+      * {
+        margin: 0;
+      }
+      #world {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: linear-gradient(#e4e0ba, #f7d9aa);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="world"></div>
+    <script>
+      var scene,camera,renderer,container,HEIGHT,WIDTH,aspectRatio,nearPlane,farPlane,fieldOfView;
+      function init() { 
+        createScene();
+      }
+      function createScene() {
+        HEIGHT = window.innerHeight;
+        WIDTH = window.innerWidth;
+        scene = new THREE.Scene();
+        aspectRatio = WIDTH / HEIGHT;
+        fieldOfView = 60;
+        nearPlane = 1;
+        farPlane = 10000;
+        camera = new THREE.PerspectiveCamera(fieldOfView,aspectRatio,nearPlane,farPlane);
+        camera.position.x = 0;
+        camera.position.y = 100;
+        camera.position.z = 200;
+        renderer = new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true
+        });
+        // renderer.shadowMap.enabled = true;
+        renderer.setSize(WIDTH,HEIGHT);
+        container = document.getElementById('world');
+        container.appendChild(renderer.domElement);
+        window.addEventListener('resize',handleWindowResize,false);
+      }
+      function handleWindowResize() {
+        HEIGHT = window.innerHeight;
+        WIDTH = window.innerWidth;
+        camera.aspect = WIDTH / HEIGHT;
+        renderer.setSize(WIDTH,HEIGHT);
+        camera.updateProjectionMatrix();
+      }
+      window.onload = init;
+    </script>
+  </body>
+</html>

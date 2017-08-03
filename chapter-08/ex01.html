@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Example 01.01 - Basic skeleton</title>
+    <script type="text/javascript" src="../libs/three.js"></script>
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to
+             use the complete page */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Div which will hold the Output -->
+<div id="WebGL-output">
+</div>
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+    // once everything is loaded, we run our Three.js stuff.
+    function init() {
+        // here we'll put the Three.js stuff
+       var scene = new THREE.Scene();
+       var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+       var canvasRenderer = new THREE.WebGLRenderer();
+       canvasRenderer.setSize(window.innerWidth,window.innerHeight);
+       canvasRenderer.setClearColor(new THREE.Color(0xF3F4F6, 1.0));
+       camera.position.x = -40;
+       camera.position.y = 40;
+       camera.position.z = 100;
+       camera.lookAt(new THREE.Vector3(0,0,0));
+       var axisHelper = new THREE.AxisHelper(40);
+       scene.add(axisHelper);
+       document.getElementById("WebGL-output").appendChild(canvasRenderer.domElement);
+    
+    var planeGeom = new THREE.PlaneGeometry(100,100,10,10);
+    var planeMatirial = new THREE.MeshBasicMaterial({color: '#dddddd',side:THREE.DoubleSide});
+    var wireframeMaterial = new THREE.MeshBasicMaterial({wireframe: true})
+    var plane = new THREE.SceneUtils.createMultiMaterialObject(planeGeom,[planeMatirial,wireframeMaterial]);
+    plane.rotation.x = -Math.PI / 2;
+    scene.add(plane);
+        
+        var normalMaterial = new THREE.MeshNormalMaterial();
+        var sphereGeom = new THREE.SphereGeometry(10, 20, 20);
+        var sphere = new THREE.SceneUtils.createMultiMaterialObject(sphereGeom,[normalMaterial,wireframeMaterial]);
+        sphere.position.x = 20;
+        sphere.position.y = 10;
+        // scene.add(sphere);
+
+        var cubeGeom = new THREE.BoxGeometry(10, 10, 10, 1, 1, 1);
+        var cube = new THREE.SceneUtils.createMultiMaterialObject(cubeGeom,[normalMaterial,wireframeMaterial]);
+        cube.position.set(-10, 10, 0);
+        // scene.add(cube);
+
+        var group = new THREE.Object3D();
+        group.position.set(10,10,0);
+        var arrowHelper = new THREE.ArrowHelper(new THREE.Vector3(0,1,0),group.position,10,0x0000ff);
+        scene.add(arrowHelper);
+        group.add(sphere);
+        group.add(cube);
+        scene.add(group);
+
+        function render() {
+            sphere.rotation.x = sphere.rotation.x + 0.03;
+            group.rotation.y = group.rotation.y + 0.01;
+            requestAnimationFrame(render);
+            canvasRenderer.render(scene,camera);
+        }
+        render();
+    }
+    window.onload = init
+</script>
+</body>
+</html>

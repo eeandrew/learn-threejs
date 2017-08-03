@@ -30,6 +30,10 @@
         // create a scene, that will hold all our elements such as objects, cameras and lights.
         var scene = new THREE.Scene();
 
+        //Axis Helper
+        var axisHelper = new THREE.AxisHelper(20);
+        scene.add(axisHelper);
+
         // create a camera, which defines where we're looking at.
         var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -63,7 +67,7 @@
 
         // position the cube
         cube.position.x = -4;
-        cube.position.y = 3;
+        cube.position.y = 8;
         cube.position.z = 0;
 
         // add the cube to the scene

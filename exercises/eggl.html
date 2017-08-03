@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Example 01.01 - Basic skeleton</title>
+    <script type="text/javascript" src="../libs/three.js"></script>
+    <style>
+        body {
+            /* set margin to 0 and overflow to hidden, to
+             use the complete page */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Div which will hold the Output -->
+<div id="WebGL-output">
+</div>
+<!--顶点着色器-->
+<script type="x-shader/x-vertex" id="vertex-shader">
+    varying vec3 vNormal;
+    void main() {
+        vNormal = normal;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+    }
+</script>
+
+<!--片段着色器-->
+<script type="x-shader/x-fragment" id="fragment-shader">
+    varying vec3 vNormal;
+    void main() {
+        vec3 light = vec3(0.5, 0.2, 1.0);
+        light = normalize(light);
+        float lightness = max(0.0, dot(vNormal,light));
+        gl_FragColor = vec4(lightness,lightness,lightness,1.0);
+    }
+</script>
+
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+    // once everything is loaded, we run our Three.js stuff.
+    function init() {
+        // here we'll put the Three.js stuff
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        var webglRenderer = new THREE.WebGLRenderer();
+         webglRenderer.shadowMapEnabled = true;
+        webglRenderer.shadowMapType = THREE.PCFShadowMap;
+        var light = new THREE.DirectionalLight( 0xffffff );
+        light.position.set( 0, 0, 1 );
+        // scene.add( light );
+        webglRenderer.setSize(window.innerWidth, window.innerHeight);
+        webglRenderer.setClearColor(new THREE.Color(0x666666),1);
+        webglRenderer.shadowMap.enabled = true;
+        webglRenderer.shadowMapEnabled = true;
+
+        camera.position.x = -20;
+        camera.position.y = 40;
+        camera.position.z = 100;
+        scene.add(camera);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        var axisHelper = new THREE.AxisHelper(100);
+        scene.add(axisHelper);
+        document.getElementById("WebGL-output").appendChild(webglRenderer.domElement);
+        function addPlain() {
+            var planeGeom = new THREE.PlaneGeometry(200,400);
+            var planeMaterial = new THREE.MeshLambertMaterial({color: '#ffffff'});
+            var plane = new THREE.Mesh(planeGeom,planeMaterial);
+            plane.rotation.x = -1 * Math.PI / 2;
+            plane.receiveShadow = true;
+            scene.add(plane);
+        }
+
+        function getShaderMaterial() {
+            var vertexShader = document.getElementById('vertex-shader').text;
+            var fragmentShader = document.getElementById('fragment-shader').text;
+            var shaderMaterial = new THREE.ShaderMaterial({
+                vertexShader,
+                fragmentShader
+            })
+            return shaderMaterial;
+        }
+
+        function drawEgg() {
+            //EGG SOURCE CODE: https://stackoverflow.com/questions/37106866/how-to-create-an-egg-mesh-in-three-js
+            var points = [];
+            for ( var deg = 0; deg <= 180; deg += 1 ) {
+                var rad = Math.PI * deg / 180;
+                var point = new THREE.Vector2( ( 0.72 + .08 * Math.cos( rad ) ) * Math.sin( rad )*10, - Math.cos( rad )*10 ); // the "egg equation"
+                points.push( point );
+            }
+            var eggMaterial = getShaderMaterial();
+            var eggGeom = new THREE.LatheGeometry( points , 100);
+            var egg = new THREE.Mesh(eggGeom,eggMaterial);
+            egg.castShadow = true;
+            return egg;
+        }
+
+        function addCube() {
+            var cubeGeom = new THREE.BoxGeometry(10,10,10);
+            var material = new THREE.MeshPhongMaterial( { color: 0xffff00 } );
+            var cube = new THREE.Mesh(cubeGeom,material);
+            cube.castShadow = true;
+            cube.position.set(10,10,10)
+            scene.add(cube);
+        }
+
+        function addLight() {
+            var ambiColor = "#666666";
+            var ambientLight = new THREE.AmbientLight(ambiColor);
+            scene.add(ambientLight);
+        }
+
+        function addDirectionLight() {
+            var dLight = new THREE.SpotLight('#dddddd');
+            dLight.position.set(40,50,40);
+            dLight.castShadow = true;
+            scene.add(dLight);
+        }
+
+        function addEggToScene(x,y,z) {
+            // const {
+            //     x,y,z
+            // } = position;
+            var egg = drawEgg();
+            egg.position.set(x,y,z);
+            scene.add(egg);
+        }
+        // addPlain();
+        // addLight();
+        // addDirectionLight();
+        // addEggToScene(0,0,-80);
+        addEggToScene(0,0,0);
+        function render() {
+            // addCube();
+            webglRenderer.render(scene,camera);
+            // requestAnimationFrame(render);
+        }
+
+        render();
+    }
+    window.onload = init
+
+</script>
+</body>
+</html>

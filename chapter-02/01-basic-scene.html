@@ -34,6 +34,9 @@
 
         // create a scene, that will hold all our elements such as objects, cameras and lights.
         var scene = new THREE.Scene();
+        
+        var axisHelper = new THREE.AxisHelper(60);
+        scene.add(axisHelper);
 
         // create a camera, which defines where we're looking at.
         var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -69,7 +72,7 @@
 
         // add subtle ambient lighting
         var ambientLight = new THREE.AmbientLight(0x0c0c0c);
-        scene.add(ambientLight);
+        // scene.add(ambientLight);
 
         // add spotlight for the shadows
         var spotLight = new THREE.SpotLight(0xffffff);

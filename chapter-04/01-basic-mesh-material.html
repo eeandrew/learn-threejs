@@ -37,6 +37,10 @@
         // create a scene, that will hold all our elements such as objects, cameras and lights.
         var scene = new THREE.Scene();
 
+        var axisHelper = new THREE.AxisHelper(40);
+
+        scene.add(axisHelper);
+
         // create a camera, which defines where we're looking at.
         var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -51,10 +55,11 @@
         canvasRenderer.setSize(window.innerWidth, window.innerHeight);
         renderer = webGLRenderer;
 
-        var groundGeom = new THREE.PlaneGeometry(100, 100, 4, 4);
+        var groundGeom = new THREE.PlaneGeometry(40, 40, 4, 4);
         var groundMesh = new THREE.Mesh(groundGeom, new THREE.MeshBasicMaterial({color: 0x777777}));
-        groundMesh.rotation.x = -Math.PI / 2;
-        groundMesh.position.y = -20;
+        groundMesh.side = THREE.BackSide;
+        groundMesh.rotation.x = Math.PI / 4;
+        // groundMesh.position.y = -20;
         scene.add(groundMesh);
 
         var sphereGeometry = new THREE.SphereGeometry(14, 20, 20);
@@ -82,9 +87,9 @@
         scene.add(cube);
 
         // position and point the camera to the center of the scene
-        camera.position.x = -20;
+        camera.position.x = -100;
         camera.position.y = 50;
-        camera.position.z = 40;
+        camera.position.z = 100;
         camera.lookAt(new THREE.Vector3(10, 0, 0));
 
         // add subtle ambient lighting
@@ -95,7 +100,7 @@
         var spotLight = new THREE.SpotLight(0xffffff);
         spotLight.position.set(-40, 60, -10);
         spotLight.castShadow = true;
-        scene.add(spotLight);
+        // scene.add(spotLight);
 
         // add the output of the renderer to the html element
         document.getElementById("WebGL-output").appendChild(renderer.domElement);
