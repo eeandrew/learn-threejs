@@ -21,18 +21,25 @@
 <!--顶点着色器-->
 <script type="x-shader/x-vertex" id="vertex-shader">
     attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
+
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
+
+    varying vec4 vColor;
+
     void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+        vColor = aVertexColor;
     }
 </script>
 
 <!--片段着色器-->
 <script type="x-shader/x-fragment" id="fragment-shader">
     precision mediump float;
+    varying vec4 vColor;
     void main(void) {
-        gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
+        gl_FragColor = vColor;
     }
 </script>
 
@@ -52,31 +59,20 @@
     }
 
 
-    function getShader(gl, id) {
+    function getShader(gl, id, type) {
         var shaderScript = document.getElementById(id);
-        if (!shaderScript) {
-            return null;
-        }
-
-        var str = "";
-        var k = shaderScript.firstChild;
-        while (k) {
-            if (k.nodeType == 3) {
-                str += k.textContent;
-            }
-            k = k.nextSibling;
-        }
-
+        var shaderStr = document.getElementById(id).text;
+        
         var shader;
-        if (shaderScript.type == "x-shader/x-fragment") {
+        if (type == "FRAGMENT") {
             shader = gl.createShader(gl.FRAGMENT_SHADER);
-        } else if (shaderScript.type == "x-shader/x-vertex") {
+        } else if (type == "VERTEX") {
             shader = gl.createShader(gl.VERTEX_SHADER);
         } else {
             return null;
         }
 
-        gl.shaderSource(shader, str);
+        gl.shaderSource(shader, shaderStr);
         gl.compileShader(shader);
 
         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -91,8 +87,8 @@
     var shaderProgram;
 
     function initShaders() {
-        var fragmentShader = getShader(gl, "fragment-shader");
-        var vertexShader = getShader(gl, "vertex-shader");
+        var fragmentShader = getShader(gl, "fragment-shader",'FRAGMENT');
+        var vertexShader = getShader(gl, "vertex-shader",'VERTEX');
 
         shaderProgram = gl.createProgram();
         gl.attachShader(shaderProgram, vertexShader);
@@ -107,6 +103,9 @@
 
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram,'aVertexColor')
+        gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
@@ -125,8 +124,11 @@
 
     var triangleVertexPositionBuffer;
     var squareVertexPositionBuffer;
+    var triangleVertexColorBuffer;
+    var squareVertexColorBuffer;
 
     function initBuffers() {
+        //三角形顶点位置
         triangleVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         var vertices = [
@@ -137,7 +139,20 @@
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         triangleVertexPositionBuffer.itemSize = 3;
         triangleVertexPositionBuffer.numItems = 3;
+        
+        //三角形顶点颜色
+        triangleVertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexColorBuffer)
+        var colors = [
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        triangleVertexColorBuffer.numItems = 3;
+        triangleVertexColorBuffer.itemSize = 4;
 
+        //正方形顶点位置
         squareVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
         vertices = [
@@ -149,6 +164,17 @@
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         squareVertexPositionBuffer.itemSize = 3;
         squareVertexPositionBuffer.numItems = 4;
+
+        //正方形顶点颜色
+        squareVertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER,squareVertexColorBuffer)
+        colors = [];
+        for(var i=0;i<4;i++) {
+            colors = colors.concat([0.5, 0.5, 1.0, 1.0])
+        }
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW)
+        squareVertexColorBuffer.numItems =4;
+        squareVertexColorBuffer.itemSize = 4;
     }
 
 
@@ -163,15 +189,19 @@
         mat4.translate(mvMatrix,mvMatrix, [-1.5, 0.0, -7.0]);
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer)
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,triangleVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0)
         setMatrixUniforms();
         gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
-
 
         mat4.translate(mvMatrix,mvMatrix, [3.0, 0.0, 0.0]);
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexColorBuffer)
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute,squareVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0)
         setMatrixUniforms();
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+        
     }
 
 
