@@ -114,12 +114,25 @@
 
     var mvMatrix = mat4.create();
     var pMatrix = mat4.create();
+    var mvMatrixStack = [];
 
     function setMatrixUniforms() {
         gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
         gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
     }
 
+    function mvPushMatrix() {
+        var tmp = mat4.create();
+        mat4.copy(tmp,mvMatrix);
+        mvMatrixStack.push(tmp)
+    }
+
+    function mvPopMatrix() {
+        if(mvMatrixStack.length == 0) {
+            throw "Invalid mvMatrixStack"
+        }
+        mvMatrix = mvMatrixStack.pop();
+    }
 
 
     var triangleVertexPositionBuffer;
@@ -177,16 +190,20 @@
         squareVertexColorBuffer.itemSize = 4;
     }
 
-
+    var rTri = 0;
+    var rSquare = 0;
     function drawScene() {
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         mat4.perspective(pMatrix,45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
-
         mat4.identity(mvMatrix);
-
         mat4.translate(mvMatrix,mvMatrix, [-1.5, 0.0, -7.0]);
+
+        mvPushMatrix();
+        rTri += 0.01;
+        mat4.rotate(mvMatrix,mvMatrix,rTri,[0,1,0])
+
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer)
@@ -194,7 +211,11 @@
         setMatrixUniforms();
         gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
 
+        mvPopMatrix();
+        rSquare += 0.01;
         mat4.translate(mvMatrix,mvMatrix, [3.0, 0.0, 0.0]);
+        mat4.rotate(mvMatrix,mvMatrix,rSquare,[1,0,0])
+
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexColorBuffer)
@@ -203,7 +224,6 @@
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
         
     }
-
 
 
     function webGLStart() {
@@ -215,7 +235,17 @@
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
+        tick()
+    }
+
+    function animate() {
+        
+    }
+
+    function tick() {
+        requestAnimationFrame(tick);
         drawScene();
+        animate();
     }
 
     window.onload = webGLStart
