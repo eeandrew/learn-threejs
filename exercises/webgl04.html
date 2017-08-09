@@ -14,13 +14,14 @@
                 vec2 zeroToTwo = zeroToOne * 2.0;
                 // 把 0->2 转换到 -1->+1 (裁剪空间)
                 vec2 clipSpace = zeroToTwo - 1.0;
-                gl_Position = vec4(clipSpace, 0, 1);
+                gl_Position = vec4(clipSpace * vec2(1,-1), 0, 1);
             }
         </script>
         <script type="x-shader/x-fragment" id="fragment-shader">
             precision mediump float;
+            uniform vec4 u_color;
             void main() {
-                gl_FragColor = vec4(1, 0, 0.5, 1);
+                gl_FragColor = u_color;
             }
         </script>
         <script>
@@ -63,6 +64,9 @@
                 
                 shaderProgram.resolutionUniformLocation = gl.getUniformLocation(shaderProgram,'u_resolution');
                 gl.uniform2f(shaderProgram.resolutionUniformLocation,gl.viewportWidth,gl.viewportHeight);
+
+                shaderProgram.colorUniformLocation = gl.getUniformLocation(shaderProgram,'u_color');
+                gl.uniform4f(shaderProgram.colorUniformLocation,0.0,1.0,1.0,1);
             }
 
             var triangleVertexPositionBuffer;
@@ -70,13 +74,16 @@
                 triangleVertexPositionBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer);
                 var vertices = [
-                    200, 150,
-                    200, 225,
-                    340, 150,
+                    10, 20,
+                    80, 20,
+                    10, 30,
+                    10, 30,
+                    80, 20,
+                    80, 30,
                 ];
                 gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW)
                 triangleVertexPositionBuffer.itemSize = 2
-                triangleVertexPositionBuffer.numItems = 3
+                triangleVertexPositionBuffer.numItems = 6
             }
 
             function drawScene() {
