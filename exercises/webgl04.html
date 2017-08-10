@@ -8,6 +8,7 @@
         <script type="x-shader/x-vertex" id="vertex-shader">
             attribute vec2 a_poistion;
             uniform vec2 u_resolution;
+            varying vec4 v_color;
             void main() {
                 vec2 zeroToOne = a_poistion / u_resolution;
                 // 再把 0->1 转换 0->2
@@ -15,13 +16,15 @@
                 // 把 0->2 转换到 -1->+1 (裁剪空间)
                 vec2 clipSpace = zeroToTwo - 1.0;
                 gl_Position = vec4(clipSpace * vec2(1,-1), 0, 1);
+                v_color = gl_Position * 0.5 + 0.5;
             }
         </script>
         <script type="x-shader/x-fragment" id="fragment-shader">
             precision mediump float;
             uniform vec4 u_color;
+            varying vec4 v_color;
             void main() {
-                gl_FragColor = u_color;
+                gl_FragColor = v_color;
             }
         </script>
         <script>
@@ -75,11 +78,11 @@
                 gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer);
                 var vertices = [
                     10, 20,
-                    80, 20,
-                    10, 30,
-                    10, 30,
-                    80, 20,
-                    80, 30,
+                    300, 20,
+                    10, 200,
+                    10, 200,
+                    300, 20,
+                    300, 200,
                 ];
                 gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW)
                 triangleVertexPositionBuffer.itemSize = 2
