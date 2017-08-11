@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Shader Sample</title>
+    </head>
+    <body>
+        <canvas id="webgl-canvas" width="400" height="300"> </canvas>
+        <script type="x-shader/x-vertex" id="vertex-shader">
+            attribute vec4 a_poistion;
+            attribute vec2 a_textureCoord;
+            varying vec2 v_textureCoord;
+            void main() {
+                gl_Position = a_poistion;
+                v_textureCoord = a_textureCoord;
+            }
+        </script>
+        <script type="x-shader/x-fragment" id="fragment-shader">
+            precision mediump float;
+            varying vec2 v_textureCoord;
+            uniform sampler2D u_image;
+            void main() {
+                gl_FragColor = texture2D(u_image, v_textureCoord).gbra;
+            }
+        </script>
+        <script>
+            var gl;
+            var shaderProgram;
+            function initGL() {
+                var canvas = document.getElementById("webgl-canvas");
+                gl = canvas.getContext('webgl');
+                gl.viewportWidth = canvas.width;
+                gl.viewportHeight = canvas.height;
+            }
+
+            function getShader(gl,id,type) {
+                var shaderString = document.getElementById(id).text;
+                var shader;
+                if(type == 'FRAGMENT') {
+                    shader = gl.createShader(gl.FRAGMENT_SHADER)
+                }else if(type = 'VERTEX') {
+                    shader = gl.createShader(gl.VERTEX_SHADER)
+                }
+                gl.shaderSource(shader,shaderString)
+                gl.compileShader(shader)
+                return shader;
+            }
+
+            function initShader() {
+                var fragmentShader = getShader(gl,'fragment-shader','FRAGMENT')
+                var vertexShader = getShader(gl,'vertex-shader','VERTEX')
+                shaderProgram = gl.createProgram();
+                gl.attachShader(shaderProgram,fragmentShader)
+                gl.attachShader(shaderProgram,vertexShader)
+                gl.linkProgram(shaderProgram);
+
+                if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                    alert("Could not initialise shaders");
+                }
+                gl.useProgram(shaderProgram);     
+                shaderProgram.apositionLocation = gl.getAttribLocation(shaderProgram,'a_poistion');
+                gl.enableVertexAttribArray(shaderProgram.apositionLocation);  
+
+                shaderProgram.textureCoordLocation = gl.getAttribLocation(shaderProgram, 'a_textureCoord');
+                gl.enableVertexAttribArray(shaderProgram.textureCoordLocation)
+
+                shaderProgram.imageTextureLocation = gl.getUniformLocation(shaderProgram,'u_image');
+            }
+
+            var triangleVertexPositionBuffer;
+            var textureCoordBuffer;
+            function initBuffers() {
+                triangleVertexPositionBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer);
+                var vertices = [
+                    0.0,  0.0, 
+                    1.0,  0.0, 
+                    0.0,  1.0, 
+                    0.0,  1.0, 
+                    1.0,  0.0, 
+                    1.0,  1.0,
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW)
+                triangleVertexPositionBuffer.itemSize = 2
+                triangleVertexPositionBuffer.numItems = 6
+
+                textureCoordBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER,textureCoordBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW)
+                textureCoordBuffer.numItems = 6
+                textureCoordBuffer.itemSize = 2
+            }
+
+            function drawScene() {
+                gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+                gl.clearColor(0, 0, 0, 1);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer)
+                gl.vertexAttribPointer(shaderProgram.apositionLocation,triangleVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0)
+                
+                gl.bindBuffer(gl.ARRAY_BUFFER,textureCoordBuffer)
+                gl.vertexAttribPointer(shaderProgram.textureCoordLocation,textureCoordBuffer.itemSize,gl.FLOAT, false, 0, 0)
+
+                gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+            }
+
+            function initTexture() {
+                var image = new Image();
+                image.src = 'http://192.168.1.2:8000/assets/textures/animals/cat.jpg';
+                image.onload = function() {
+                    var texture = gl.createTexture()
+                    gl.bindTexture(gl.TEXTURE_2D, texture)
+                    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+                }
+            }
+
+            function tick() {
+                drawScene()
+                requestAnimationFrame(tick)
+            }
+
+            function webGLStart() {
+                initGL();
+                initShader();
+                initBuffers();
+                initTexture();
+                tick();
+            }
+
+            window.onload = webGLStart;
+        </script>
+    </body>
+</html>
