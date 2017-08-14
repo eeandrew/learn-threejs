@@ -87,13 +87,27 @@
                 ];
             }
 
-            function getProjectionMatrix(width,height,depth) {
-                return [
+            function getProjectionMatrix(width,height,depth, fudgeFactor) {
+                var matrix = mat4.create();
+                var fudgeMatrix = [
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, fudgeFactor,
+                    0, 0, 0, 1,
+                ];
+                var pMatrix = [
                     2/width,0,0,0,
                     0,-2/height,0,0,
                     0,0,2/depth,0,
                     -1,1,0,1
                 ];
+                return mat4.multiply(matrix,fudgeMatrix,pMatrix)
+            }
+
+            function getPerspectiveMatrix(fieldOfViewInRadians, aspect, near, far) {
+                var matrix = mat4.create()
+                mat4.perspective(matrix,fieldOfViewInRadians,aspect,near,far)
+                return matrix;
             }
 
             function getShader(gl,id,type) {
@@ -132,7 +146,7 @@
 
             var r = 0;
             function setMatrixUniform() {
-                r += 0.9;
+                r += 0.4;
                 if(r >= 360) {
                     r = 0;
                 }
@@ -140,7 +154,7 @@
                 var yrmatrix = getYRoation(r)
                 var zrmatrix = getZRotation(r)
 
-                var tmatrix = getTranslationMatrix(165,100,0)
+                var tmatrix = getTranslationMatrix(0,0,-200)
                 var smatrix = getScaleMatrix(1,1,1)
                 var mmatrix = getTranslationMatrix(-35,-75,0)
                 var mvmatrix = mat4.create();
@@ -153,7 +167,8 @@
 
                 gl.uniformMatrix4fv(shaderProgram.mvmatrixUniform,false,mvmatrix)
 
-                var pmatrix = getProjectionMatrix(gl.viewportWidth,gl.viewportHeight,400)
+                // var pmatrix = getProjectionMatrix(gl.viewportWidth,gl.viewportHeight,400,1)
+                var pmatrix = getPerspectiveMatrix(60 * Math.PI / 180,gl.viewportWidth / gl.viewportHeight,1,2000)
                 shaderProgram.pmatrixUniform = gl.getUniformLocation(shaderProgram,'u_pmatrix')
                 gl.uniformMatrix4fv(shaderProgram.pmatrixUniform,false,pmatrix)
             }
@@ -165,28 +180,29 @@
                 vertextColorBuffer = gl.createBuffer();
                 gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer);
                 var vertices = [
+                     // left column front
                     0,   0,  0,
-                    30,   0,  0,
-                    0, 150,  0,
                     0, 150,  0,
                     30,   0,  0,
+                    0, 150,  0,
                     30, 150,  0,
+                    30,   0,  0,
 
                     // top rung front
                     30,   0,  0,
-                    100,   0,  0,
-                    30,  30,  0,
                     30,  30,  0,
                     100,   0,  0,
+                    30,  30,  0,
                     100,  30,  0,
+                    100,   0,  0,
 
                     // middle rung front
                     30,  60,  0,
-                    67,  60,  0,
-                    30,  90,  0,
                     30,  90,  0,
                     67,  60,  0,
+                    30,  90,  0,
                     67,  90,  0,
+                    67,  60,  0,
 
                     // left column back
                         0,   0,  30,
@@ -238,27 +254,27 @@
 
                     // between top rung and middle
                     30,   30,   0,
+                    30,   60,  30,
                     30,   30,  30,
-                    30,   60,  30,
                     30,   30,   0,
-                    30,   60,  30,
                     30,   60,   0,
+                    30,   60,  30,
 
                     // top of middle rung
                     30,   60,   0,
+                    67,   60,  30,
                     30,   60,  30,
-                    67,   60,  30,
                     30,   60,   0,
-                    67,   60,  30,
                     67,   60,   0,
+                    67,   60,  30,
 
                     // right of middle rung
                     67,   60,   0,
+                    67,   90,  30,
                     67,   60,  30,
-                    67,   90,  30,
                     67,   60,   0,
-                    67,   90,  30,
                     67,   90,   0,
+                    67,   90,  30,
 
                     // bottom of middle rung.
                     30,   90,   0,
@@ -270,11 +286,11 @@
 
                     // right of bottom
                     30,   90,   0,
+                    30,  150,  30,
                     30,   90,  30,
-                    30,  150,  30,
                     30,   90,   0,
-                    30,  150,  30,
                     30,  150,   0,
+                    30,  150,  30,
 
                     // bottom
                     0,   150,   0,
