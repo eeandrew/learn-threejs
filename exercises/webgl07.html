@@ -145,7 +145,7 @@
             }
 
             var r = 0;
-            function setMatrixUniform() {
+            function setMatrixUniform(x,y,z) {
                 r += 0.4;
                 if(r >= 360) {
                     r = 0;
@@ -154,7 +154,7 @@
                 var yrmatrix = getYRoation(r)
                 var zrmatrix = getZRotation(r)
 
-                var tmatrix = getTranslationMatrix(0,0,-200)
+                var tmatrix = getTranslationMatrix(x,y,z)
                 var smatrix = getScaleMatrix(1,1,1)
                 var mmatrix = getTranslationMatrix(-35,-75,0)
                 var mvmatrix = mat4.create();
@@ -330,15 +330,26 @@
                 gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
                 gl.clearColor(0, 0, 0, 1);
                 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer)
+                gl.vertexAttribPointer(shaderProgram.apositionLocation,triangleVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0)
+                setMatrixUniform(-200,20,-400)
+                gl.bindBuffer(gl.ARRAY_BUFFER,vertextColorBuffer)
+                gl.vertexAttribPointer(shaderProgram.colorLocation,vertextColorBuffer.itemSize,gl.FLOAT,false,0,0)
+                gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+
                 gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer)
                 gl.vertexAttribPointer(shaderProgram.apositionLocation,triangleVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0)
                 gl.bindBuffer(gl.ARRAY_BUFFER,vertextColorBuffer)
                 gl.vertexAttribPointer(shaderProgram.colorLocation,vertextColorBuffer.itemSize,gl.FLOAT,false,0,0)
+                setMatrixUniform(60,20,-300)
                 gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+                
+                // gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
             }
 
             function tick() {
-                setMatrixUniform()
+                // setMatrixUniform()
                 drawScene()
                 requestAnimationFrame(tick)
             }
