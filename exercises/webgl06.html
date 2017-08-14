@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Shader Sample</title>
+    </head>
+    <body>
+        <canvas id="webgl-canvas" width="400" height="300"> </canvas>
+        <script type="x-shader/x-vertex" id="vertex-shader">
+            attribute vec2 a_poistion;
+            uniform vec2 u_resolution;
+            uniform vec2 u_rotation;
+            void main() {
+                vec2 rotatedPostion = vec2(
+                    a_poistion.x * u_rotation.y + a_poistion.y * u_rotation.x,
+                    a_poistion.y * u_rotation.y - a_poistion.x * u_rotation.x);
+                vec2 zeroToOne = rotatedPostion / u_resolution;
+                // 再把 0->1 转换 0->2
+                vec2 zeroToTwo = zeroToOne * 2.0;
+                // 把 0->2 转换到 -1->+1 (裁剪空间)
+                vec2 clipSpace = zeroToTwo - 1.0;
+                gl_Position = vec4(clipSpace * vec2(1,-1), 0, 1);
+            }
+        </script>
+        <script type="x-shader/x-fragment" id="fragment-shader">
+            precision mediump float;
+            void main() {
+                gl_FragColor = vec4(1.0,0.0,1.0,1);
+            }
+        </script>
+        <script>
+            var gl;
+            var shaderProgram;
+            function initGL() {
+                var canvas = document.getElementById("webgl-canvas");
+                gl = canvas.getContext('webgl');
+                gl.viewportWidth = canvas.width;
+                gl.viewportHeight = canvas.height;
+            }
+
+            function getShader(gl,id,type) {
+                var shaderString = document.getElementById(id).text;
+                var shader;
+                if(type == 'FRAGMENT') {
+                    shader = gl.createShader(gl.FRAGMENT_SHADER)
+                }else if(type = 'VERTEX') {
+                    shader = gl.createShader(gl.VERTEX_SHADER)
+                }
+                gl.shaderSource(shader,shaderString)
+                gl.compileShader(shader)
+                return shader;
+            }
+
+            function initShader() {
+                var fragmentShader = getShader(gl,'fragment-shader','FRAGMENT')
+                var vertexShader = getShader(gl,'vertex-shader','VERTEX')
+                shaderProgram = gl.createProgram();
+                gl.attachShader(shaderProgram,fragmentShader)
+                gl.attachShader(shaderProgram,vertexShader)
+                gl.linkProgram(shaderProgram);
+
+                if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                    alert("Could not initialise shaders");
+                }
+                gl.useProgram(shaderProgram);     
+                shaderProgram.apositionLocation = gl.getAttribLocation(shaderProgram,'a_poistion');
+                gl.enableVertexAttribArray(shaderProgram.apositionLocation);  
+
+                shaderProgram.resolutionUniform = gl.getUniformLocation(shaderProgram,'u_resolution')
+                gl.uniform2f(shaderProgram.resolutionUniform,gl.viewportWidth,gl.viewportHeight)
+
+                shaderProgram.rotationUniform = gl.getUniformLocation(shaderProgram,'u_rotation')
+                gl.uniform2f(shaderProgram.rotationUniform,Math.sin(-10 * Math.PI / 180),Math.cos(-10 * Math.PI / 180))
+            }
+
+            var triangleVertexPositionBuffer;
+            function initBuffers() {
+                triangleVertexPositionBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer);
+                var vertices = [
+                    10.0,  10.0, 
+                    210.0,  10.0, 
+                    210.0,  110.0, 
+                    210.0,  110.0, 
+                    10.0,  10.0, 
+                    10.0,  110.0,
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW)
+                triangleVertexPositionBuffer.itemSize = 2
+                triangleVertexPositionBuffer.numItems = 6
+            }
+
+            function drawScene() {
+                gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+                gl.clearColor(0, 0, 0, 1);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer)
+                gl.vertexAttribPointer(shaderProgram.apositionLocation,triangleVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0)
+                gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+            }
+
+            function tick() {
+                drawScene()
+                requestAnimationFrame(tick)
+            }
+
+            function webGLStart() {
+                initGL();
+                initShader();
+                initBuffers();
+                tick();
+            }
+
+            window.onload = webGLStart;
+        </script>
+    </body>
+</html>
