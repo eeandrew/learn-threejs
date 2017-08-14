@@ -2,6 +2,7 @@
 <html>  
     <head>
         <title>Shader Sample</title>
+        <script type="text/javascript" src="../libs/gl-matrix-min.js"> </script>
     </head>
     <body>
         <canvas id="webgl-canvas" width="400" height="300"> </canvas>
@@ -9,16 +10,12 @@
             attribute vec2 a_poistion;
             uniform vec2 u_resolution;
             uniform vec2 u_rotation;
+            uniform vec2 u_scale;
+            uniform vec2 u_translation;
+            uniform mat3 u_mvmatrix;
+            uniform mat3 u_pmatrix;
             void main() {
-                vec2 rotatedPostion = vec2(
-                    a_poistion.x * u_rotation.y + a_poistion.y * u_rotation.x,
-                    a_poistion.y * u_rotation.y - a_poistion.x * u_rotation.x);
-                vec2 zeroToOne = rotatedPostion / u_resolution;
-                // 再把 0->1 转换 0->2
-                vec2 zeroToTwo = zeroToOne * 2.0;
-                // 把 0->2 转换到 -1->+1 (裁剪空间)
-                vec2 clipSpace = zeroToTwo - 1.0;
-                gl_Position = vec4(clipSpace * vec2(1,-1), 0, 1);
+                gl_Position = vec4((u_pmatrix * u_mvmatrix * vec3(a_poistion,1)).xy,0,1);
             }
         </script>
         <script type="x-shader/x-fragment" id="fragment-shader">
@@ -35,6 +32,41 @@
                 gl = canvas.getContext('webgl');
                 gl.viewportWidth = canvas.width;
                 gl.viewportHeight = canvas.height;
+            }
+
+            function getTranslationMatrix(tx, ty) {
+                return [
+                    1,0,0,
+                    0,1,0,
+                    tx,ty,1
+                ]
+            }
+
+            function getScaleMatrix(sx,sy) {
+                return [
+                    sx,0,0,
+                    0,sy,0,
+                    0,0,1
+                ]
+            }
+
+            function getRotateMatrix(r) {
+                var reg = r * Math.PI / 180;
+                var s = Math.sin(reg)
+                var c = Math.cos(reg)
+                return [
+                    c,-s,0,
+                    s,c,0,
+                    0,0,1
+                ]
+            }
+
+            function getProjectionMatrix(width,height) {
+                return [
+                    2/width,0,0,
+                    0,-2/height,0,
+                    -1,1,1
+                ];
             }
 
             function getShader(gl,id,type) {
@@ -68,8 +100,20 @@
                 shaderProgram.resolutionUniform = gl.getUniformLocation(shaderProgram,'u_resolution')
                 gl.uniform2f(shaderProgram.resolutionUniform,gl.viewportWidth,gl.viewportHeight)
 
-                shaderProgram.rotationUniform = gl.getUniformLocation(shaderProgram,'u_rotation')
-                gl.uniform2f(shaderProgram.rotationUniform,Math.sin(-10 * Math.PI / 180),Math.cos(-10 * Math.PI / 180))
+                shaderProgram.mvmatrixUniform = gl.getUniformLocation(shaderProgram,'u_mvmatrix')                
+                var rmatrix = getRotateMatrix(0)
+                var tmatrix = getTranslationMatrix(190,140)
+                var smatrix = getScaleMatrix(1,1)
+                var mmatrix = getTranslationMatrix(-110,-60)
+                var mvmatrix = mat3.create();
+                mat3.multiply(mvmatrix,tmatrix,rmatrix);
+                mat3.multiply(mvmatrix,mvmatrix,smatrix);
+                mat3.multiply(mvmatrix,mvmatrix,mmatrix);
+                gl.uniformMatrix3fv(shaderProgram.mvmatrixUniform,false,mvmatrix)
+
+                var pmatrix = getProjectionMatrix(gl.viewportWidth,gl.viewportHeight)
+                shaderProgram.pmatrixUniform = gl.getUniformLocation(shaderProgram,'u_pmatrix')
+                gl.uniformMatrix3fv(shaderProgram.pmatrixUniform,false,pmatrix)
             }
 
             var triangleVertexPositionBuffer;
