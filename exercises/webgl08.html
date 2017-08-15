@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Shader Sample</title>
+        <script type="text/javascript" src="../libs/gl-matrix-min.js"> </script>
+    </head>
+    <body>
+        <canvas id="webgl-canvas" width="400" height="300"> </canvas>
+        <script type="x-shader/x-vertex" id="vertex-shader">
+            attribute vec4 a_poistion;
+            attribute vec4 a_color;
+            varying vec4 v_color;
+            uniform mat4 u_mvmatrix;
+            uniform mat4 u_pmatrix;
+            void main() {
+                gl_Position = u_pmatrix * u_mvmatrix * a_poistion;
+                v_color = a_color;
+            }
+        </script>
+        <script type="x-shader/x-fragment" id="fragment-shader">
+            precision mediump float;
+            varying vec4 v_color;
+            void main() {
+                gl_FragColor = v_color;
+            }
+        </script>
+        <script>
+            var gl;
+            var shaderProgram;
+            var numFs = 6;
+            var radius = 200;
+            function initGL() {
+                var canvas = document.getElementById("webgl-canvas");
+                gl = canvas.getContext('webgl');
+                gl.viewportWidth = canvas.width;
+                gl.viewportHeight = canvas.height;
+                // gl.enable(gl.CULL_FACE);
+                gl.enable(gl.DEPTH_TEST);
+            }
+
+            function getTranslationMatrix(tx, ty, tz) {
+                return [
+                    1,0,0,0,
+                    0,1,0,0,
+                    0,0,1,0,
+                    tx,ty,tz,1
+                ]
+            }
+
+            function getScaleMatrix(sx,sy,sz) {
+                return [
+                    sx,0,0,0,
+                    0,sy,0,0,
+                    0,0,sz,0,
+                    0,0,0,1
+                ]
+            }
+
+            function getXRotation(r) {
+                var c = Math.cos(r * Math.PI / 180);
+                var s = Math.sin(r * Math.PI / 180);
+                return [
+                    1, 0, 0, 0,
+                    0, c, s, 0,
+                    0, -s, c, 0,
+                    0, 0, 0, 1,
+                ];
+            }
+
+            function getYRoation(r) {
+                var c = Math.cos(r * Math.PI / 180);
+                var s = Math.sin(r * Math.PI / 180);
+                return [
+                    c, 0, -s, 0,
+                    0, 1, 0, 0,
+                    s, 0, c, 0,
+                    0, 0, 0, 1,
+                ];
+            }
+
+            function getZRotation(r) {
+                var c = Math.cos(r * Math.PI / 180);
+                var s = Math.sin(r * Math.PI / 180);
+                return [
+                    c, s, 0, 0,
+                    -s, c, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1,
+                ];
+            }
+
+            function getProjectionMatrix(width,height,depth, fudgeFactor) {
+                var matrix = mat4.create();
+                var fudgeMatrix = [
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, fudgeFactor,
+                    0, 0, 0, 1,
+                ];
+                var pMatrix = [
+                    2/width,0,0,0,
+                    0,-2/height,0,0,
+                    0,0,2/depth,0,
+                    -1,1,0,1
+                ];
+                return mat4.multiply(matrix,fudgeMatrix,pMatrix)
+            }
+
+            function getPerspectiveMatrix(fieldOfViewInRadians, aspect, near, far) {
+                var matrix = mat4.create()
+                mat4.perspective(matrix,fieldOfViewInRadians,aspect,near,far)
+                return matrix;
+            }
+
+            function getShader(gl,id,type) {
+                var shaderString = document.getElementById(id).text;
+                var shader;
+                if(type == 'FRAGMENT') {
+                    shader = gl.createShader(gl.FRAGMENT_SHADER)
+                }else if(type = 'VERTEX') {
+                    shader = gl.createShader(gl.VERTEX_SHADER)
+                }
+                gl.shaderSource(shader,shaderString)
+                gl.compileShader(shader)
+                return shader;
+            }
+
+            function initShader() {
+                var fragmentShader = getShader(gl,'fragment-shader','FRAGMENT')
+                var vertexShader = getShader(gl,'vertex-shader','VERTEX')
+                shaderProgram = gl.createProgram();
+                gl.attachShader(shaderProgram,fragmentShader)
+                gl.attachShader(shaderProgram,vertexShader)
+                gl.linkProgram(shaderProgram);
+
+                if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                    alert("Could not initialise shaders");
+                }
+                gl.useProgram(shaderProgram);     
+                shaderProgram.apositionLocation = gl.getAttribLocation(shaderProgram,'a_poistion');
+                gl.enableVertexAttribArray(shaderProgram.apositionLocation);  
+
+                shaderProgram.colorLocation = gl.getAttribLocation(shaderProgram,'a_color')
+                gl.enableVertexAttribArray(shaderProgram.colorLocation)
+
+                shaderProgram.mvmatrixUniform = gl.getUniformLocation(shaderProgram,'u_mvmatrix')  
+                
+                shaderProgram.pmatrixUniform = gl.getUniformLocation(shaderProgram,'u_pmatrix')
+            }
+            function getMVMatrix() {
+                var xrmatrix = getXRotation(180)
+                var yrmatrix = getYRoation(0)
+                var zrmatrix = getZRotation(0)
+                
+                var tmatrix = getTranslationMatrix(0,0,0)
+                var smatrix = getScaleMatrix(1,1,1)
+                var mmatrix = getTranslationMatrix(-35,-75,0)
+
+                var mvmatrix = mat4.create();
+
+                mat4.multiply(mvmatrix,tmatrix,xrmatrix);
+                mat4.multiply(mvmatrix,mvmatrix,yrmatrix);
+                mat4.multiply(mvmatrix,mvmatrix,zrmatrix);
+                mat4.multiply(mvmatrix,mvmatrix,smatrix);
+                mat4.multiply(mvmatrix,mvmatrix,mmatrix);
+
+                return mvmatrix;
+            }
+
+            function getPMatrix() {
+                var pmatrix = getPerspectiveMatrix(60 * Math.PI / 180,gl.viewportWidth / gl.viewportHeight,1,2000)
+                return pmatrix;
+            }
+
+            function updateShaderMVMatrix(mvmatrix) {
+                gl.uniformMatrix4fv(shaderProgram.mvmatrixUniform,false,mvmatrix)
+            }
+
+            function updateShaderPMatrix(pmatrix) {
+                gl.uniformMatrix4fv(shaderProgram.pmatrixUniform,false,pmatrix)
+            }
+
+            var cameraRotationAngle = 0;
+            function getCameraMatrix() {
+                cameraRotationAngle += 1;
+                var matrix = getYRoation(cameraRotationAngle);
+                mat4.translate(matrix,matrix,[0,0,radius*1]);
+                mat4.invert(matrix,matrix)
+                return matrix; 
+            }
+
+            function updateProjectionMatrix() {
+                var cameraMatrix = getCameraMatrix();
+                var pmatrix = getPMatrix();
+                mat4.multiply(pmatrix,pmatrix,cameraMatrix)
+                updateShaderPMatrix(pmatrix);
+            }
+
+            var r = 0;
+            function setMatrixUniform(x,y,z) {
+                r += 0.4;
+                if(r >= 360) {
+                    r = 0;
+                }
+                var xrmatrix = getXRotation(180)
+                var yrmatrix = getYRoation(0)
+                var zrmatrix = getZRotation(0)
+
+                var tmatrix = getTranslationMatrix(x,y,z)
+                var smatrix = getScaleMatrix(1,1,1)
+                var mmatrix = getTranslationMatrix(-35,-75,0)
+                var mvmatrix = mat4.create();
+
+                mat4.multiply(mvmatrix,tmatrix,xrmatrix);
+                mat4.multiply(mvmatrix,mvmatrix,yrmatrix);
+                mat4.multiply(mvmatrix,mvmatrix,zrmatrix);
+                mat4.multiply(mvmatrix,mvmatrix,smatrix);
+                mat4.multiply(mvmatrix,mvmatrix,mmatrix);
+
+                gl.uniformMatrix4fv(shaderProgram.mvmatrixUniform,false,mvmatrix)
+                var pmatrix = getPerspectiveMatrix(60 * Math.PI / 180,gl.viewportWidth / gl.viewportHeight,1,2000)
+                shaderProgram.pmatrixUniform = gl.getUniformLocation(shaderProgram,'u_pmatrix')
+                gl.uniformMatrix4fv(shaderProgram.pmatrixUniform,false,pmatrix)
+            }
+
+            var triangleVertexPositionBuffer;
+            var vertextColorBuffer;
+            function initBuffers() {
+                triangleVertexPositionBuffer = gl.createBuffer();
+                vertextColorBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer);
+                var vertices = [
+                     // left column front
+                    0,   0,  0,
+                    0, 150,  0,
+                    30,   0,  0,
+                    0, 150,  0,
+                    30, 150,  0,
+                    30,   0,  0,
+
+                    // top rung front
+                    30,   0,  0,
+                    30,  30,  0,
+                    100,   0,  0,
+                    30,  30,  0,
+                    100,  30,  0,
+                    100,   0,  0,
+
+                    // middle rung front
+                    30,  60,  0,
+                    30,  90,  0,
+                    67,  60,  0,
+                    30,  90,  0,
+                    67,  90,  0,
+                    67,  60,  0,
+
+                    // left column back
+                        0,   0,  30,
+                    30,   0,  30,
+                        0, 150,  30,
+                        0, 150,  30,
+                    30,   0,  30,
+                    30, 150,  30,
+
+                    // top rung back
+                    30,   0,  30,
+                    100,   0,  30,
+                    30,  30,  30,
+                    30,  30,  30,
+                    100,   0,  30,
+                    100,  30,  30,
+
+                    // middle rung back
+                    30,  60,  30,
+                    67,  60,  30,
+                    30,  90,  30,
+                    30,  90,  30,
+                    67,  60,  30,
+                    67,  90,  30,
+
+                    // top
+                        0,   0,   0,
+                    100,   0,   0,
+                    100,   0,  30,
+                        0,   0,   0,
+                    100,   0,  30,
+                        0,   0,  30,
+
+                    // top rung right
+                    100,   0,   0,
+                    100,  30,   0,
+                    100,  30,  30,
+                    100,   0,   0,
+                    100,  30,  30,
+                    100,   0,  30,
+
+                    // under top rung
+                    30,   30,   0,
+                    30,   30,  30,
+                    100,  30,  30,
+                    30,   30,   0,
+                    100,  30,  30,
+                    100,  30,   0,
+
+                    // between top rung and middle
+                    30,   30,   0,
+                    30,   60,  30,
+                    30,   30,  30,
+                    30,   30,   0,
+                    30,   60,   0,
+                    30,   60,  30,
+
+                    // top of middle rung
+                    30,   60,   0,
+                    67,   60,  30,
+                    30,   60,  30,
+                    30,   60,   0,
+                    67,   60,   0,
+                    67,   60,  30,
+
+                    // right of middle rung
+                    67,   60,   0,
+                    67,   90,  30,
+                    67,   60,  30,
+                    67,   60,   0,
+                    67,   90,   0,
+                    67,   90,  30,
+
+                    // bottom of middle rung.
+                    30,   90,   0,
+                    30,   90,  30,
+                    67,   90,  30,
+                    30,   90,   0,
+                    67,   90,  30,
+                    67,   90,   0,
+
+                    // right of bottom
+                    30,   90,   0,
+                    30,  150,  30,
+                    30,   90,  30,
+                    30,   90,   0,
+                    30,  150,   0,
+                    30,  150,  30,
+
+                    // bottom
+                    0,   150,   0,
+                    0,   150,  30,
+                    30,  150,  30,
+                    0,   150,   0,
+                    30,  150,  30,
+                    30,  150,   0,
+
+                    // left side
+                    0,   0,   0,
+                    0,   0,  30,
+                    0, 150,  30,
+                    0,   0,   0,
+                    0, 150,  30,
+                    0, 150,   0
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW)
+                triangleVertexPositionBuffer.itemSize = 3
+                triangleVertexPositionBuffer.numItems = 96
+
+                gl.bindBuffer(gl.ARRAY_BUFFER,vertextColorBuffer);
+                var vertexColors = [];
+                var color = [Math.random(),Math.random(),Math.random(),1];
+                for(let i=0;i<vertices.length / 3;i++) {
+                    if(i % 6 == 0) {
+                        color = [Math.random(),Math.random(),Math.random(),1];
+                    }
+                    vertexColors = vertexColors.concat(color);
+                }
+                gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertexColors),gl.STATIC_DRAW)
+                vertextColorBuffer.itemSize = 4
+                vertextColorBuffer.numItems = 128
+            }
+
+            function drawFs() {
+                var mvmatrix = getMVMatrix()
+                for(var i=0;i<numFs;i++) {
+                    var angle = i * Math.PI * 2 / numFs;
+                    var x = Math.cos(angle) * radius;
+                    var z= Math.sin(angle) * radius;
+                    mat4.translate(mvmatrix,mvmatrix,[x,0,z])
+                    updateShaderMVMatrix(mvmatrix)
+                    gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+                }
+            }
+
+            function drawScene() {
+                gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+                gl.clearColor(0, 0, 0, 1);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                updateProjectionMatrix();
+
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer)
+                gl.vertexAttribPointer(shaderProgram.apositionLocation,triangleVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0)
+                gl.bindBuffer(gl.ARRAY_BUFFER,vertextColorBuffer)
+                gl.vertexAttribPointer(shaderProgram.colorLocation,vertextColorBuffer.itemSize,gl.FLOAT,false,0,0)
+                drawFs();
+            }
+
+            function tick() {
+                drawScene()
+                requestAnimationFrame(tick)
+            }
+
+            function webGLStart() {
+                initGL();
+                initShader();
+                initBuffers();
+                // setMatrixUniform(0,0,-300)
+                tick();
+            }
+
+            window.onload = webGLStart;
+        </script>
+    </body>
+</html>
