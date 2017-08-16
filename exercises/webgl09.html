@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Shader Sample</title>
+        <script type="text/javascript" src="../libs/gl-matrix-min.js"> </script>
+    </head>
+    <body>
+        <canvas id="webgl-canvas" width="400" height="300"> </canvas>
+        <script type="x-shader/x-vertex" id="vertex-shader">
+            attribute vec4 a_poistion;
+            uniform mat4 u_worldViewProjection;
+            uniform mat4 u_world;
+            void main() {
+                gl_Position = u_worldViewProjection * a_poistion;
+            }
+        </script>
+        <script type="x-shader/x-fragment" id="fragment-shader">
+            precision mediump float;
+            uniform vec4 u_color;
+            void main() {
+                gl_FragColor = u_color;
+            }
+        </script>
+        <script>
+            var gl;
+            var shaderProgram;
+            function initGL() {
+                var canvas = document.getElementById("webgl-canvas");
+                gl = canvas.getContext('webgl');
+                gl.viewportWidth = canvas.width;
+                gl.viewportHeight = canvas.height;
+                // gl.enable(gl.CULL_FACE);
+                gl.enable(gl.DEPTH_TEST);
+            }
+
+            function getTranslationMatrix(tx, ty, tz) {
+                return [
+                    1,0,0,0,
+                    0,1,0,0,
+                    0,0,1,0,
+                    tx,ty,tz,1
+                ]
+            }
+
+            function getScaleMatrix(sx,sy,sz) {
+                return [
+                    sx,0,0,0,
+                    0,sy,0,0,
+                    0,0,sz,0,
+                    0,0,0,1
+                ]
+            }
+
+            function getXRotation(r) {
+                var c = Math.cos(r * Math.PI / 180);
+                var s = Math.sin(r * Math.PI / 180);
+                return [
+                    1, 0, 0, 0,
+                    0, c, s, 0,
+                    0, -s, c, 0,
+                    0, 0, 0, 1,
+                ];
+            }
+
+            function getYRoation(r) {
+                var c = Math.cos(r * Math.PI / 180);
+                var s = Math.sin(r * Math.PI / 180);
+                return [
+                    c, 0, -s, 0,
+                    0, 1, 0, 0,
+                    s, 0, c, 0,
+                    0, 0, 0, 1,
+                ];
+            }
+
+            function getZRotation(r) {
+                var c = Math.cos(r * Math.PI / 180);
+                var s = Math.sin(r * Math.PI / 180);
+                return [
+                    c, s, 0, 0,
+                    -s, c, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1,
+                ];
+            }
+            function transformPoint(m, v, dst) {
+                dst = dst || new Float32Array(3);
+                var v0 = v[0];
+                var v1 = v[1];
+                var v2 = v[2];
+                var d = v0 * m[0 * 4 + 3] + v1 * m[1 * 4 + 3] + v2 * m[2 * 4 + 3] + m[3 * 4 + 3];
+
+                dst[0] = (v0 * m[0 * 4 + 0] + v1 * m[1 * 4 + 0] + v2 * m[2 * 4 + 0] + m[3 * 4 + 0]) / d;
+                dst[1] = (v0 * m[0 * 4 + 1] + v1 * m[1 * 4 + 1] + v2 * m[2 * 4 + 1] + m[3 * 4 + 1]) / d;
+                dst[2] = (v0 * m[0 * 4 + 2] + v1 * m[1 * 4 + 2] + v2 * m[2 * 4 + 2] + m[3 * 4 + 2]) / d;
+
+                return dst;
+            }
+            function getProjectionMatrix(width,height,depth, fudgeFactor) {
+                var matrix = mat4.create();
+                var fudgeMatrix = [
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, fudgeFactor,
+                    0, 0, 0, 1,
+                ];
+                var pMatrix = [
+                    2/width,0,0,0,
+                    0,-2/height,0,0,
+                    0,0,2/depth,0,
+                    -1,1,0,1
+                ];
+                return mat4.multiply(matrix,fudgeMatrix,pMatrix)
+            }
+
+            function getPerspectiveMatrix(dst, fieldOfViewInRadians, aspect, near, far) {
+                dst = dst || new Float32Array(16);
+                var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+                var rangeInv = 1.0 / (near - far);
+
+                dst[ 0] = f / aspect;
+                dst[ 1] = 0;
+                dst[ 2] = 0;
+                dst[ 3] = 0;
+                dst[ 4] = 0;
+                dst[ 5] = f;
+                dst[ 6] = 0;
+                dst[ 7] = 0;
+                dst[ 8] = 0;
+                dst[ 9] = 0;
+                dst[10] = (near + far) * rangeInv;
+                dst[11] = -1;
+                dst[12] = 0;
+                dst[13] = 0;
+                dst[14] = near * far * rangeInv * 2;
+                dst[15] = 0;
+
+                return dst;
+            }
+
+            function getShader(gl,id,type) {
+                var shaderString = document.getElementById(id).text;
+                var shader;
+                if(type == 'FRAGMENT') {
+                    shader = gl.createShader(gl.FRAGMENT_SHADER)
+                }else if(type = 'VERTEX') {
+                    shader = gl.createShader(gl.VERTEX_SHADER)
+                }
+                gl.shaderSource(shader,shaderString)
+                gl.compileShader(shader)
+                return shader;
+            }
+
+            function initShader() {
+                var fragmentShader = getShader(gl,'fragment-shader','FRAGMENT')
+                var vertexShader = getShader(gl,'vertex-shader','VERTEX')
+                shaderProgram = gl.createProgram();
+                gl.attachShader(shaderProgram,fragmentShader)
+                gl.attachShader(shaderProgram,vertexShader)
+                gl.linkProgram(shaderProgram);
+
+                if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                    alert("Could not initialise shaders");
+                }
+                gl.useProgram(shaderProgram);     
+                shaderProgram.apositionLocation = gl.getAttribLocation(shaderProgram,'a_poistion');
+                gl.enableVertexAttribArray(shaderProgram.apositionLocation);  
+
+                shaderProgram.colorLocation = gl.getUniformLocation(shaderProgram,'u_color');
+                gl.uniform4fv(shaderProgram.colorLocation,[0.2, 1, 0.2, 1])
+
+                shaderProgram.worldViewProjectionLocation = gl.getUniformLocation(shaderProgram,'u_worldViewProjection')
+                shaderProgram.worldMatrixLocation = gl.getUniformLocation(shaderProgram,'u_world')
+            }
+
+            var r = 0;
+            var camera = [100, 150, 500]
+            var target = [0, 35, 0]
+            var up = [0,1,0]
+            function setMatrixUniform() {
+                r += 1;
+                if(r >= 360) {
+                    r = 0;
+                }
+                var pmatrix = getPerspectiveMatrix(60 * Math.PI / 180,gl.viewportWidth / gl.viewportHeight,1,2000)
+                var cameraMatrix = mat4.create();
+                mat4.lookAt(cameraMatrix,camera,target,up);
+
+                var viewMatrix = mat4.create();
+                mat4.invert(viewMatrix,cameraMatrix); 
+
+                var viewProjectionMatrix = mat4.create();
+                mat4.multiply(viewProjectionMatrix,pmatrix,viewMatrix);
+
+                var worldMatrix = getYRoation(r);
+                var worldViewProjectionMatrix = mat4.create()
+                mat4.multiply(worldViewProjectionMatrix,viewProjectionMatrix,worldMatrix);
+
+                gl.uniformMatrix4fv(shaderProgram.worldViewProjectionLocation,false,worldViewProjectionMatrix)
+                gl.uniformMatrix4fv(shaderProgram.worldMatrixLocation,false,worldMatrix)
+            }
+
+            var triangleVertexPositionBuffer;
+            var vertextColorBuffer;
+            function initBuffers() {
+                triangleVertexPositionBuffer = gl.createBuffer();
+                vertextColorBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer);
+                var positions = new Float32Array([
+                    // left column front
+                    0,   0,  0,
+                    0, 150,  0,
+                    30,   0,  0,
+                    0, 150,  0,
+                    30, 150,  0,
+                    30,   0,  0,
+
+                    // top rung front
+                    30,   0,  0,
+                    30,  30,  0,
+                    100,   0,  0,
+                    30,  30,  0,
+                    100,  30,  0,
+                    100,   0,  0,
+
+                    // middle rung front
+                    30,  60,  0,
+                    30,  90,  0,
+                    67,  60,  0,
+                    30,  90,  0,
+                    67,  90,  0,
+                    67,  60,  0,
+
+                    // left column back
+                        0,   0,  30,
+                    30,   0,  30,
+                        0, 150,  30,
+                        0, 150,  30,
+                    30,   0,  30,
+                    30, 150,  30,
+
+                    // top rung back
+                    30,   0,  30,
+                    100,   0,  30,
+                    30,  30,  30,
+                    30,  30,  30,
+                    100,   0,  30,
+                    100,  30,  30,
+
+                    // middle rung back
+                    30,  60,  30,
+                    67,  60,  30,
+                    30,  90,  30,
+                    30,  90,  30,
+                    67,  60,  30,
+                    67,  90,  30,
+
+                    // top
+                        0,   0,   0,
+                    100,   0,   0,
+                    100,   0,  30,
+                        0,   0,   0,
+                    100,   0,  30,
+                        0,   0,  30,
+
+                    // top rung right
+                    100,   0,   0,
+                    100,  30,   0,
+                    100,  30,  30,
+                    100,   0,   0,
+                    100,  30,  30,
+                    100,   0,  30,
+
+                    // under top rung
+                    30,   30,   0,
+                    30,   30,  30,
+                    100,  30,  30,
+                    30,   30,   0,
+                    100,  30,  30,
+                    100,  30,   0,
+
+                    // between top rung and middle
+                    30,   30,   0,
+                    30,   60,  30,
+                    30,   30,  30,
+                    30,   30,   0,
+                    30,   60,   0,
+                    30,   60,  30,
+
+                    // top of middle rung
+                    30,   60,   0,
+                    67,   60,  30,
+                    30,   60,  30,
+                    30,   60,   0,
+                    67,   60,   0,
+                    67,   60,  30,
+
+                    // right of middle rung
+                    67,   60,   0,
+                    67,   90,  30,
+                    67,   60,  30,
+                    67,   60,   0,
+                    67,   90,   0,
+                    67,   90,  30,
+
+                    // bottom of middle rung.
+                    30,   90,   0,
+                    30,   90,  30,
+                    67,   90,  30,
+                    30,   90,   0,
+                    67,   90,  30,
+                    67,   90,   0,
+
+                    // right of bottom
+                    30,   90,   0,
+                    30,  150,  30,
+                    30,   90,  30,
+                    30,   90,   0,
+                    30,  150,   0,
+                    30,  150,  30,
+
+                    // bottom
+                    0,   150,   0,
+                    0,   150,  30,
+                    30,  150,  30,
+                    0,   150,   0,
+                    30,  150,  30,
+                    30,  150,   0,
+
+                    // left side
+                    0,   0,   0,
+                    0,   0,  30,
+                    0, 150,  30,
+                    0,   0,   0,
+                    0, 150,  30,
+                    0, 150,   0
+                ]);
+
+                var matrix = getXRotation(Math.PI);
+                mat4.translate(matrix,matrix,[-50, -75, -15])
+                for (var ii = 0; ii < positions.length; ii += 3) {
+                    var vector = transformPoint(matrix, [positions[ii + 0], positions[ii + 1], positions[ii + 2], 1]);
+                    positions[ii + 0] = vector[0];
+                    positions[ii + 1] = vector[1];
+                    positions[ii + 2] = vector[2];
+                }
+
+                gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+                triangleVertexPositionBuffer.itemSize = 3
+                triangleVertexPositionBuffer.numItems = 96
+            }
+
+            function drawScene() {
+                gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+                gl.clearColor(0, 0, 0, 1);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexPositionBuffer)
+                gl.vertexAttribPointer(shaderProgram.apositionLocation,triangleVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0)
+                setMatrixUniform()
+                gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+            }
+
+            function tick() {
+                drawScene()
+                requestAnimationFrame(tick)
+            }
+
+            function webGLStart() {
+                initGL();
+                initShader();
+                initBuffers();
+                // setMatrixUniform();
+                tick();
+            }
+
+            window.onload = webGLStart;
+        </script>
+    </body>
+</html>
